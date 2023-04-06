@@ -187,8 +187,8 @@ int main(void)
 		}
 		if(elapsedTime(g_sysTime,time100ms) >= 100)
 		{
-			cambien_doam_dat1 = doam_dat_getValue_sensor1();
-			cambien_doam_dat2 = doam_dat_getValue_sensor2();
+			cambien_doam_dat1 = ((uint32_t)100-(doam_dat_getValue_sensor1()*(uint32_t)100)/4095);
+			cambien_doam_dat2 = ((uint32_t)100-(doam_dat_getValue_sensor2()*(uint32_t)100)/4095);
 			if(DHT11_1_ReadData(&DHT11_Data))
 			{
 				temp1 = DHT11_Data.temp_int;
