@@ -1,3 +1,5 @@
 Drivers/CMSIS
 MDK-ARM
 Drivers
+Middlewares/Third_Party/FreeRTOS/Source/stream_buffer.c
+Middlewares
