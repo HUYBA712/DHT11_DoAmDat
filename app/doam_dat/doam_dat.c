@@ -36,7 +36,11 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 		g_adc_flag = 1;
 		state_adc.index[icount] = 0;
 	}
-	icount = 1 - icount;
+	icount++;
+	if(icount>=4)
+	{
+		icount=0;
+	}
 	HAL_ADC_Stop_IT(hadc);
 }
 
@@ -51,4 +55,20 @@ uint32_t doam_dat_getValue_sensor2()
 {
 	return state_adc.value[1];
 }
+
+
+uint32_t doam_dat_getvalue_anhsang1()
+{
+	return state_adc.value[2];
+}
+
+
+uint32_t doam_dat_getvalue_anhsang2()
+{
+	return state_adc.value[3];
+}
+
+
+
+
 

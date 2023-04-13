@@ -23,6 +23,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "stdbool.h"
 #include "sensor.h"
 #include "doam_dat.h"
 #include "uart.h"
@@ -53,6 +54,8 @@ UART_HandleTypeDef huart1;
 osThreadId defaultTaskHandle;
 /* USER CODE BEGIN PV */
  ADC_ChannelConfTypeDef sConfigPrivate = {0};
+ 
+osThreadId task2_Handle;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -65,6 +68,9 @@ static void MX_USART1_UART_Init(void);
 void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
+ 
+void Task2(void const *parameter);
+ 
 extern uint32_t g_sysTime;
 extern volatile uint8_t g_run1msFlag;
 
@@ -73,17 +79,21 @@ uint32_t time10ms = 0;
 uint32_t time100ms = 0;
 uint32_t cambien_doam_dat1=0;
 uint32_t cambien_doam_dat2=0;
-
+uint32_t cambien_anhsang1=0;
+uint32_t cambien_anhsang2=0;
 
  
 typedef enum
 {
 	ADC_CH_3 = 0,
-	ADC_CH_4
+	ADC_CH_4,
+	ADC_CH_5,
+	ADC_CH_6
 }ch_adc_t;
 
 
-DHT11_Data_TypeDef DHT11_Data;
+DHT11_Data_TypeDef DHT11_Data_1;
+DHT11_Data_TypeDef DHT11_Data_2;
 
 float temp1 = 0, humi1 = 0;
 float temp2 = 0, humi2 = 0;
@@ -122,9 +132,17 @@ void switchChannel(ch_adc_t channel)
 	{
 		sConfigPrivate.Channel = ADC_CHANNEL_3;
 	}
-	else
+	else if(channel == ADC_CH_4)
 	{
 		sConfigPrivate.Channel = ADC_CHANNEL_4;
+	}
+	else if(channel == ADC_CH_5)
+	{
+		sConfigPrivate.Channel = ADC_CHANNEL_5;
+	}
+	else
+	{
+		sConfigPrivate.Channel = ADC_CHANNEL_6;
 	}
 	
 	if (HAL_ADC_ConfigChannel(&hadc1, &sConfigPrivate) != HAL_OK)
@@ -169,7 +187,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
 	HAL_TIM_Base_Start_IT(&htim1);
 	doam_dat_init(hadc1);
-	uart_init(huart1);
+	uart_init(&huart1);
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -205,45 +223,49 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-		if(g_run1msFlag)
-		{
-			static uint8_t xchannel = 0;
-			g_run1msFlag = 0;
-			doam_dat_start(hadc1);
-			switchChannel(xchannel);
-			xchannel = 1 - xchannel;
-		}
-		if(elapsedTime(g_sysTime,time10ms) >= 10)
-		{
-			uart_process();
-			time10ms = g_sysTime;
-		}
-		if(elapsedTime(g_sysTime,time100ms) >= 100)
-		{
-			cambien_doam_dat1 = ((uint32_t)100-(doam_dat_getValue_sensor1()*(uint32_t)100)/4095);
-			cambien_doam_dat2 = ((uint32_t)100-(doam_dat_getValue_sensor2()*(uint32_t)100)/4095);
-			if(DHT11_1_ReadData(&DHT11_Data))
-			{
-				temp1 = DHT11_Data.temp_int;
-				humi1 = DHT11_Data.humi_int;
-			}
-			if(DHT11_2_ReadData(&DHT11_Data))
-			{
-				temp2 = DHT11_Data.temp_int;
-				humi2 = DHT11_Data.humi_int;
-			}
-			uint8_t fr[6];
-			fr[0] = cambien_doam_dat1;
-			fr[1] = temp1;
-			fr[2] = humi1;
-			fr[3] = cambien_doam_dat2;
-			fr[4] = temp2;
-			fr[5] = humi2;
+//		if(g_run1msFlag)
+//		{
+//			static uint8_t xchannel = 0;
+//			g_run1msFlag = 0;
+//			doam_dat_start(hadc1);
+//			switchChannel(xchannel);
+//			xchannel++;
+//			if(xchannel>=4)
+//			{
+//				xchannel=0;
+//			}
+//		}
+//		if(elapsedTime(g_sysTime,time10ms) >= 10)
+//		{
+//			uart_process();
+//			time10ms = g_sysTime;
+//		}
+//		if(elapsedTime(g_sysTime,time100ms) >= 100)
+//		{
+//			cambien_doam_dat1 = ((uint32_t)100-(doam_dat_getValue_sensor1()*(uint32_t)100)/4095);
+//			cambien_doam_dat2 = ((uint32_t)100-(doam_dat_getValue_sensor2()*(uint32_t)100)/4095);
+//			if(DHT11_1_ReadData(&DHT11_Data))
+//			{
+//				temp1 = DHT11_Data.temp_int;
+//				humi1 = DHT11_Data.humi_int;
+//			}
+//			if(DHT11_2_ReadData(&DHT11_Data))
+//			{
+//				temp2 = DHT11_Data.temp_int;
+//				humi2 = DHT11_Data.humi_int;
+//			}
+//			uint8_t fr[6];
+//			fr[0] = cambien_doam_dat1;
+//			fr[1] = temp1;
+//			fr[2] = humi1;
+//			fr[3] = cambien_doam_dat2;
+//			fr[4] = temp2;
+//			fr[5] = humi2;
 
-			uart_transmitData(huart1,(char*)fr);
-			
-			time100ms = g_sysTime;
-		}
+//			uart_transmitData(huart1,(char*)fr);
+//			
+//			time100ms = g_sysTime;
+//		}
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -474,11 +496,22 @@ static void MX_GPIO_Init(void)
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0|GPIO_PIN_1, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : PC13 */
+  GPIO_InitStruct.Pin = GPIO_PIN_13;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PA0 PA1 */
   GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1;
@@ -490,7 +523,22 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+	uint8_t fr[4];
+void Task2(void const *parameter)
+{
+	while(1)
+	{
+//			uint8_t fr[4];
+			fr[0] = ((uint8_t)temp1 + temp2)/2;
+			fr[1] = ((uint8_t)humi1 + humi2)/2;
+			fr[2] = ((uint8_t)cambien_anhsang1 + cambien_anhsang2)/2;
+			fr[3] = ((uint8_t)cambien_doam_dat1 + cambien_doam_dat2)/2;
+			
+			uart_transmitData((char*)fr,4);
+			osDelay(1000);
+	}
+}
+bool readDHT11 = false;
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -506,7 +554,38 @@ void StartDefaultTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+		uart_process();
+		static uint8_t xchannel = 0;
+		doam_dat_start(hadc1);
+		switchChannel(xchannel);
+		xchannel++;
+		if(xchannel>=4)
+		{
+			xchannel=0;
+		}
+		if((DHT11_1_ReadData(&DHT11_Data_1)) && (!readDHT11))
+		{
+			temp1 = DHT11_Data_1.temp_int;
+			humi1 = DHT11_Data_1.humi_int;
+		}
+		else if((DHT11_2_ReadData(&DHT11_Data_2)) && (readDHT11))
+		{
+			temp2 = DHT11_Data_2.temp_int;
+			humi2 = DHT11_Data_2.humi_int;
+		}
+		if(readDHT11)
+		{
+			readDHT11 = false;
+		}
+		else
+		{
+			readDHT11 = true;
+		}
+		cambien_doam_dat1 = ((uint32_t)100-(doam_dat_getValue_sensor1()*(uint32_t)100)/4095);
+		cambien_doam_dat2 = ((uint32_t)100-(doam_dat_getValue_sensor2()*(uint32_t)100)/4095);
+		cambien_anhsang1 = ((uint32_t)100-(doam_dat_getvalue_anhsang1()*(uint32_t)100)/4095);
+		cambien_anhsang2 = ((uint32_t)100-(doam_dat_getvalue_anhsang2()*(uint32_t)100)/4095);
+    osDelay(100);
   }
   /* USER CODE END 5 */
 }

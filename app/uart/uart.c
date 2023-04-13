@@ -8,31 +8,30 @@
 Uart_Typedef huart_data;
 static uint8_t data_rx;
 
-static UART_HandleTypeDef hUart_1;
+static UART_HandleTypeDef* hUart_1;
 
 
 
 
-void uart_init(UART_HandleTypeDef huart)
+void uart_init(UART_HandleTypeDef *huart)
 {
 	hUart_1 = huart;
-	HAL_UART_Receive_IT(&hUart_1,&data_rx,1);
+	HAL_UART_Receive_IT(hUart_1,&data_rx,1);
 }
 
 
 
 
-void uart_transmitData(UART_HandleTypeDef huart,char *data)
+void uart_transmitData(char *data,uint16_t lenght)
 {
-	hUart_1 = huart;
 	char buf_to_esp[100];
 	uint8_t cks = 0;
-	cks = uart_calculateChecksum((uint8_t*)data, strlen(data));
+	cks = uart_calculateChecksum((uint8_t*)data, lenght);
 	strcpy((buf_to_esp + 1), data);
-	buf_to_esp[0] = 0x01;
-	buf_to_esp[strlen(data) + 1] = cks;
-	buf_to_esp[strlen(data) + 2] = 0x02;
-	HAL_UART_Transmit(&hUart_1,(uint8_t*)buf_to_esp, strlen(buf_to_esp),100);
+	buf_to_esp[0] = '[';
+	buf_to_esp[lenght + 1] = cks;
+	buf_to_esp[lenght + 2] = ']';
+	HAL_UART_Transmit(hUart_1,(uint8_t*)buf_to_esp, strlen(buf_to_esp),100);
 }
 
 
@@ -101,7 +100,7 @@ void uart_process()
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	if(huart->Instance == hUart_1.Instance)
+	if(huart->Instance == hUart_1->Instance)
 	{
 		if(huart_data.index < MAX_BUFFER_SIZE)
 		{
@@ -112,7 +111,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 			huart_data.index = 0;
 		}
 		
-		HAL_UART_Receive_IT(&hUart_1,&data_rx,1);
+		HAL_UART_Receive_IT(hUart_1,&data_rx,1);
 	}
 }
 	

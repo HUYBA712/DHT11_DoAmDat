@@ -114,7 +114,7 @@ uint8_t DHT11_1_ReadData(DHT11_Data_TypeDef *DHT11_Data)
 {
 	sensor_DHT11_1_Mode_OUT_PP(); // set OUT PUT, set xuong muc 0
 	DHT11_1_OUT_0;	
-	HAL_Delay(18); // tre 18ms
+	delay_us(18000);  // tre 18ms
 	
 	DHT11_1_OUT_1; // set len muc 1, tre 30us 
 	delay_us(30);	
@@ -165,7 +165,7 @@ uint8_t DHT11_2_ReadData(DHT11_Data_TypeDef *DHT11_Data)
 {
 	sensor_DHT11_2_Mode_OUT_PP(); // set OUT PUT, set xuong muc 0
 	DHT11_2_OUT_0;	
-	HAL_Delay(18); // tre 18ms
+	delay_us(18000); // tre 18ms
 	
 	DHT11_2_OUT_1; // set len muc 1, tre 30us 
 	delay_us(30);	

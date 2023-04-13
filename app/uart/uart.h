@@ -14,9 +14,9 @@ typedef struct
 	uint8_t index;
 }Uart_Typedef;
 
-void uart_init(UART_HandleTypeDef huart);
+void uart_init(UART_HandleTypeDef *huart);
 
-void uart_transmitData(UART_HandleTypeDef huart,char *data);
+void uart_transmitData(char *data,uint16_t lenght);
 uint8_t uart_calculateChecksum(uint8_t *buf,uint16_t len);
 
 void uart_process();
