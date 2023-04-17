@@ -40,6 +40,35 @@ const char* g_password = "27112000";
 int g_updateTime = 0;
 uint8_t g_ledSta = 0;
 
+void setup(void)
+{
+    Serial.begin(9600);
+    Serial.setTimeout(500);
+    pinMode(16, OUTPUT);
+
+    // Connect to WiFi
+    WiFi.begin(g_ssid, g_password);
+    while (WiFi.status() != WL_CONNECTED)
+    {
+        g_ledSta = !g_ledSta;
+        digitalWrite(16, g_ledSta);
+        delay(500);
+    }
+    client.setServer(DASHBOARD_MQTT_SERVER, DASHBOARD_MQTT_PORT);
+    client.setCallback(Dashboard_Callback);
+    DashBoard_ConnectToBroker();
+}
+
+void loop()
+{
+    client.loop();
+    if (!client.connected()) {
+        DashBoard_ConnectToBroker();
+    }
+    Dashboard_ReceiveDataFromSTM32();
+}
+
+
 
 void Dashboard_ReceiveDataFromSTM32(void)
 {
@@ -96,34 +125,6 @@ void Dashboard_HandleDataFromSTM32(void)
         client.publish(DASHBOARD_TOPIC_HUMIDITY, hum, true);
         client.publish(DASHBOARD_TOPIC_SOIL, soil, true);
     }
-}
-
-void setup(void)
-{
-    Serial.begin(9600);
-    Serial.setTimeout(500);
-    pinMode(16, OUTPUT);
-
-    // Connect to WiFi
-    WiFi.begin(g_ssid, g_password);
-    while (WiFi.status() != WL_CONNECTED)
-    {
-        g_ledSta = !g_ledSta;
-        digitalWrite(16, g_ledSta);
-        delay(500);
-    }
-    client.setServer(DASHBOARD_MQTT_SERVER, DASHBOARD_MQTT_PORT);
-    client.setCallback(Dashboard_Callback);
-    DashBoard_ConnectToBroker();
-}
-
-void loop()
-{
-    client.loop();
-    if (!client.connected()) {
-        DashBoard_ConnectToBroker();
-    }
-    Dashboard_ReceiveDataFromSTM32();
 }
 
 void DashBoard_ConnectToBroker() {
