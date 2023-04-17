@@ -43,7 +43,7 @@ uint8_t g_ledSta = 0;
 
 void Dashboard_ReceiveDataFromSTM32(void)
 {
-    if (Serial.available() > 0) 
+    if (Serial.available() > 0)
     {
         g_readData = Serial.read();
         if (g_readData == '[' && g_receiveFlag == false)
@@ -56,17 +56,17 @@ void Dashboard_ReceiveDataFromSTM32(void)
         {
             if (g_receiveFlag == true)
             {
-              if (g_idx < DASHBOARD_DATA_BUFFER_LENGTH)
-              {
-                  g_bufferRx[g_idx++] = g_readData;
-              }
-              else if (g_readData == ']' || g_readData == '\n' || g_idx == DASHBOARD_DATA_BUFFER_LENGTH)
-              {
-                  g_bufferRx[g_idx] = '\0';                  
-                  Dashboard_HandleDataFromSTM32();
-                  g_receiveFlag = false;
-                  g_idx = 0;
-              }
+                if (g_idx < DASHBOARD_DATA_BUFFER_LENGTH)
+                {
+                    g_bufferRx[g_idx++] = g_readData;
+                }
+                else if (g_readData == ']' || g_readData == '\n' || g_idx == DASHBOARD_DATA_BUFFER_LENGTH)
+                {
+                    g_bufferRx[g_idx] = '\0';
+                    Dashboard_HandleDataFromSTM32();
+                    g_receiveFlag = false;
+                    g_idx = 0;
+                }
             }
         }
     }
@@ -78,24 +78,24 @@ void Dashboard_HandleDataFromSTM32(void)
     char tem[4];
     char hum[4];
     char light[4];
-    char soil[4];                
+    char soil[4];
 
     Serial.print((char*)g_bufferRx);
-    checksumVal = g_bufferRx[0] ^ g_bufferRx[1] ^ g_bufferRx[2] ^ g_bufferRx[3]; 
+    checksumVal = g_bufferRx[0] ^ g_bufferRx[1] ^ g_bufferRx[2] ^ g_bufferRx[3];
     if (checksumVal == g_bufferRx[4])
     {
         Serial.println("Suceess 2");
         sprintf(tem, "%d", g_bufferRx[0]);
         sprintf(hum, "%d", g_bufferRx[1]);
         sprintf(light, "%d", g_bufferRx[2]);
-        sprintf(soil, "%d", g_bufferRx[3]);  
-             
-        client.publish(DASHBOARD_TOPIC_LIGHT, light, true); 
-             
-        client.publish(DASHBOARD_TOPIC_TEMPERATURE, tem, true);     
-        client.publish(DASHBOARD_TOPIC_HUMIDITY, hum, true);     
-        client.publish(DASHBOARD_TOPIC_SOIL, soil, true);     
-    }     
+        sprintf(soil, "%d", g_bufferRx[3]);
+
+        client.publish(DASHBOARD_TOPIC_LIGHT, light, true);
+
+        client.publish(DASHBOARD_TOPIC_TEMPERATURE, tem, true);
+        client.publish(DASHBOARD_TOPIC_HUMIDITY, hum, true);
+        client.publish(DASHBOARD_TOPIC_SOIL, soil, true);
+    }
 }
 
 void setup(void)
@@ -103,7 +103,7 @@ void setup(void)
     Serial.begin(9600);
     Serial.setTimeout(500);
     pinMode(16, OUTPUT);
-    
+
     // Connect to WiFi
     WiFi.begin(g_ssid, g_password);
     while (WiFi.status() != WL_CONNECTED)
@@ -111,16 +111,10 @@ void setup(void)
         g_ledSta = !g_ledSta;
         digitalWrite(16, g_ledSta);
         delay(500);
-//        Serial.print("*");
     }
-//    Serial.println("");
-//    Serial.println("WiFi connection Successful");
-//    Serial.print("The IP Address of ESP8266 Module is: ");
-//    Serial.print(WiFi.localIP());// Print the IP address
     client.setServer(DASHBOARD_MQTT_SERVER, DASHBOARD_MQTT_PORT);
     client.setCallback(Dashboard_Callback);
     DashBoard_ConnectToBroker();
-//    Serial.println("Broker connedted");
 }
 
 void loop()
@@ -129,23 +123,18 @@ void loop()
     if (!client.connected()) {
         DashBoard_ConnectToBroker();
     }
-    Dashboard_ReceiveDataFromSTM32();    
+    Dashboard_ReceiveDataFromSTM32();
 }
 
 void DashBoard_ConnectToBroker() {
     while (!client.connected()) {
-//        Serial.print("Attempting MQTT connection...");
         String clientId = "ESP8266";
         clientId += String(random(0xffff), HEX);
         if (client.connect(clientId.c_str(), DASHBOARD_MQTT_USER, DASHBOARD_MQTT_PASSWORD)) {
-//            Serial.println("connected");
             client.subscribe(DASHBOARD_TOPIC_RELAY1);
             client.subscribe(DASHBOARD_TOPIC_RELAY2);
             digitalWrite(16, HIGH);
         } else {
-//            Serial.print("failed, rc=");
-//            Serial.print(client.state());
-//            Serial.println(" try again in 2 seconds");
             g_ledSta = !g_ledSta;
             digitalWrite(16, g_ledSta);
             delay(1000);
@@ -154,16 +143,10 @@ void DashBoard_ConnectToBroker() {
 }
 
 void Dashboard_Callback(char* topic, byte *payload, unsigned int length) {
-//    Serial.println("-------New topicMsg from broker-----");
-//    Serial.print("topic: ");
-//    Serial.println(topic);
-//    Serial.print("topicMsg: ");
     char statusMsg[length + 1];
     memcpy(statusMsg, payload, length);
     statusMsg[length] = NULL;
     String topicMsg(statusMsg);
-//    Serial.println();
-//    Serial.println(topicMsg);
 
     if (String(topic) == DASHBOARD_TOPIC_RELAY1)
     {
@@ -187,5 +170,4 @@ void Dashboard_Callback(char* topic, byte *payload, unsigned int length) {
             Serial.print((char*)g_R2OffMsg);
         }
     }
-//    Serial.println();
 }
