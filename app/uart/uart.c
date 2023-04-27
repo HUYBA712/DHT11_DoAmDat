@@ -55,11 +55,11 @@ uint16_t uart_get_dataFromBuffer(uint8_t* data_out)
 	uint8_t i ,j;
 	for(i=0;i<huart_data.index-1;i++)
 	{
-		if(huart_data.buff[i] == 0x01)
+		if(huart_data.buff[i] == '[')
 		{
 			for(j=i+1;j<huart_data.index;j++)
 			{
-				if(huart_data.buff[j] == 0x02)
+				if(huart_data.buff[j] == ']')
 				{
 					haveHdrAndTmn = true;
 					break;
@@ -71,22 +71,51 @@ uint16_t uart_get_dataFromBuffer(uint8_t* data_out)
 	uint16_t len = 0;
 	if(haveHdrAndTmn)
 	{
-		len = j - i;
+		len = j - i + 1;
 		memcpy((void*)data_out,(const void*)(huart_data.buff + i), len);
 		huart_data.index = 0;
 	}
 	return len;
 }
 
+extern bool isOnAuto_relay;
 
 void uart_process()
 {
-	uint8_t data_rx[100] = {0};
-	uint16_t length = 0;
-	length = uart_get_dataFromBuffer((uint8_t*)data_rx);
-	if(length == 0) return;
-	if(data_rx[length-2] == uart_calculateChecksum((data_rx+1),length - 3))
+	uint8_t data_rx_1[10] = {0};
+	uint16_t length_1 = 0;
+	length_1 = uart_get_dataFromBuffer((uint8_t*)data_rx_1);
+	if(length_1 == 0) return;
+	if(data_rx_1[length_1-2] == uart_calculateChecksum((data_rx_1+1),length_1 - 3))
 	{
+		if(isOnAuto_relay)
+		{
+			if((data_rx_1[1] == 0x01) && (data_rx_1[2] == 0x03))
+			{
+				HAL_GPIO_WritePin(GPIOB,GPIO_PIN_6,1);
+			}
+			else if((data_rx_1[1] == 0x01) && (data_rx_1[2] == 0x04))
+			{
+				HAL_GPIO_WritePin(GPIOB,GPIO_PIN_6,0);
+			}
+			if((data_rx_1[1] == 0x02) && (data_rx_1[2] == 0x03))
+			{
+				HAL_GPIO_WritePin(GPIOB,GPIO_PIN_7,1);
+			}
+			else if((data_rx_1[1] == 0x02) && (data_rx_1[2] == 0x04))
+			{
+				HAL_GPIO_WritePin(GPIOB,GPIO_PIN_7,0);
+			}
+		}
+		
+		if((data_rx_1[1] == 0x03) && (data_rx_1[2] == 0x03))
+		{
+			isOnAuto_relay = true;
+		}
+		else if((data_rx_1[1] == 0x03) && (data_rx_1[2] == 0x04))
+		{
+			isOnAuto_relay = false;
+		}
 		
 	}
 	else

@@ -75,6 +75,13 @@ extern uint32_t g_sysTime;
 extern volatile uint8_t g_run1msFlag;
 
  
+ 
+ 
+ #define VALUE_ON_RELAY  30
+
+ 
+ 
+ 
 uint32_t time10ms = 0;
 uint32_t time100ms = 0;
 uint32_t cambien_doam_dat1=0;
@@ -188,6 +195,8 @@ int main(void)
 	HAL_TIM_Base_Start_IT(&htim1);
 	doam_dat_init(hadc1);
 	uart_init(&huart1);
+	HAL_GPIO_WritePin(GPIOB,GPIO_PIN_6,0);
+	HAL_GPIO_WritePin(GPIOB,GPIO_PIN_7,0);
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -208,10 +217,13 @@ int main(void)
 
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
+  osThreadDef(defaultTask, StartDefaultTask, osPriorityAboveNormal, 0, 128);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
+	osThreadDef(task2Handle, Task2, osPriorityNormal, 0, 128);
+  task2_Handle = osThreadCreate(osThread(task2Handle), NULL);
+	
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
 
@@ -496,22 +508,15 @@ static void MX_GPIO_Init(void)
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+  __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0|GPIO_PIN_1, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : PC13 */
-  GPIO_InitStruct.Pin = GPIO_PIN_13;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6|GPIO_PIN_7, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : PA0 PA1 */
   GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1;
@@ -520,15 +525,22 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
+  /*Configure GPIO pins : PB6 PB7 */
+  GPIO_InitStruct.Pin = GPIO_PIN_6|GPIO_PIN_7;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
 }
 
 /* USER CODE BEGIN 4 */
-	uint8_t fr[4];
+//	uint8_t fr[4];
 void Task2(void const *parameter)
 {
 	while(1)
 	{
-//			uint8_t fr[4];
+			uint8_t fr[4];
 			fr[0] = ((uint8_t)temp1 + temp2)/2;
 			fr[1] = ((uint8_t)humi1 + humi2)/2;
 			fr[2] = ((uint8_t)cambien_anhsang1 + cambien_anhsang2)/2;
@@ -548,6 +560,7 @@ bool readDHT11 = false;
   * @retval None
   */
 /* USER CODE END Header_StartDefaultTask */
+bool isOnAuto_relay = false;
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
@@ -573,6 +586,7 @@ void StartDefaultTask(void const * argument)
 			temp2 = DHT11_Data_2.temp_int;
 			humi2 = DHT11_Data_2.humi_int;
 		}
+		
 		if(readDHT11)
 		{
 			readDHT11 = false;
@@ -585,7 +599,27 @@ void StartDefaultTask(void const * argument)
 		cambien_doam_dat2 = ((uint32_t)100-(doam_dat_getValue_sensor2()*(uint32_t)100)/4095);
 		cambien_anhsang1 = ((uint32_t)100-(doam_dat_getvalue_anhsang1()*(uint32_t)100)/4095);
 		cambien_anhsang2 = ((uint32_t)100-(doam_dat_getvalue_anhsang2()*(uint32_t)100)/4095);
-    osDelay(100);
+		if(!isOnAuto_relay)
+		{
+			if((cambien_doam_dat1+cambien_doam_dat2)/2 < VALUE_ON_RELAY)
+			{
+				HAL_GPIO_WritePin(GPIOB,GPIO_PIN_6,1);
+			}
+			else
+			{
+				HAL_GPIO_WritePin(GPIOB,GPIO_PIN_6,0);
+			}
+			
+			if((cambien_anhsang1+cambien_anhsang1)/2 < VALUE_ON_RELAY)
+			{
+				HAL_GPIO_WritePin(GPIOB,GPIO_PIN_7,1);
+			}
+			else
+			{
+				HAL_GPIO_WritePin(GPIOB,GPIO_PIN_7,0);
+			}
+		}
+    osDelay(50);
   }
   /* USER CODE END 5 */
 }

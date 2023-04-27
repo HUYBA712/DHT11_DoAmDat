@@ -6,11 +6,11 @@
 
 
 
-#define MAX_BUFFER_SIZE 100
+#define MAX_BUFFER_SIZE 10
 typedef struct
 {
 	uint8_t flag;
-	uint8_t buff[100];
+	uint8_t buff[10];
 	uint8_t index;
 }Uart_Typedef;
 

@@ -6,7 +6,7 @@
 
 
 
-#define MAX_SAMPLE_ADC 10
+#define MAX_SAMPLE_ADC 5
 
 typedef struct{
 	uint32_t sum[4];//tinh tong ADC
