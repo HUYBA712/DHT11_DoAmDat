@@ -560,7 +560,7 @@ bool readDHT11 = false;
   * @retval None
   */
 /* USER CODE END Header_StartDefaultTask */
-bool isOnAuto_relay = false;
+bool isOnAuto_relay = true;
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
